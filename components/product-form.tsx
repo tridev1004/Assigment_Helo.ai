@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input"
 import type { Product } from "@/lib/slices/productSlice"
 
 const CATEGORIES = ["Electronics", "Appliances", "Furniture", "Books", "Clothing"]
+const SUB_CATEGORIES = ["Electronics1", "Electronics2", "2", "B", "3"]
+
 
 interface ProductFormProps {
   product?: Product | null
@@ -23,6 +25,7 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
     name: product?.name || "",
     price: product?.price || "",
     category: product?.category || CATEGORIES[0],
+    subCategory: product?.subCategory || SUB_CATEGORIES[0],
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -57,6 +60,7 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
           name: formData.name,
           price: Number(formData.price),
           category: formData.category,
+          subCategory: formData.subCategory,
         }),
       )
     } else {
@@ -65,6 +69,7 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
           name: formData.name,
           price: Number(formData.price),
           category: formData.category,
+          subCategory: formData.subCategory,
         }),
       )
     }
@@ -124,6 +129,21 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
               ))}
             </select>
             {errors.category && <p className="text-destructive text-xs mt-1.5">{errors.category}</p>}
+          </div>
+          <div>
+            <label htmlFor="">Sub Category</label>
+
+              <select
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              className={`w-full px-3 py-2.5 border border-border rounded-lg bg-background text-foreground focus:border-primary focus:ring-1 focus:ring-primary/30 text-sm ${errors.category ? "border-destructive" : ""}`}
+            >
+              {SUB_CATEGORIES.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="flex gap-3 pt-4">

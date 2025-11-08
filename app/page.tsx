@@ -8,6 +8,8 @@ import { ProductForm } from "@/components/product-form"
 import { ProductList } from "@/components/product-list"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
+import { Calendar } from "@/components/ui/calendar"
+import PrimeRangeCalendar from "@/components/calender-comp"
 
 export default function Page() {
   const [showForm, setShowForm] = useState(false)
@@ -53,6 +55,8 @@ export default function Page() {
               <ProductForm product={editingProduct} onClose={handleCloseForm} />
             </div>
           )}
+
+          <PrimeRangeCalendar/>
 
           <ProductList onEdit={handleEdit} />
         </div>

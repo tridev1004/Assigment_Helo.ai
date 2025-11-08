@@ -46,6 +46,8 @@ export function ProductList({ onEdit }: ProductListProps) {
         >
           <div className="px-6 py-5">
             <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">{product.category}</p>
+            <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">{product.subCategory}</p>
+
             <h3 className="text-xl font-medium text-foreground">{product.name}</h3>
           </div>
 

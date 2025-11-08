@@ -5,6 +5,7 @@ export interface Product {
   name: string
   price: number
   category: string
+  subCategory?: string
 }
 
 interface ProductState {
