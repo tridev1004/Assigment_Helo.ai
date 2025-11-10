@@ -17,6 +17,15 @@ type DateTimeRange = {
   timeRangeEnabled: boolean
 }
 
+/**
+ * UPDATED NOTES:
+ * - Calendar now allows typing: readOnlyInput={false}
+ * - Time fields: editable text + explicit AM/PM select to avoid ambiguous input
+ * - InputSwitch onChange simplified (e.value)
+ * - parse/normalize time accepts "HH:MM" and "HH:MM AM/PM"
+ * - preserveTime handles null source dates more defensively
+ */
+
 export default function PrimeRangeCalendar() {
   const [startDate, setStartDate] = useState<Date | null>(new Date(2025, 11, 15, 12, 0))
   const [endDate, setEndDate] = useState<Date | null>(new Date(2025, 11, 24, 23, 59))

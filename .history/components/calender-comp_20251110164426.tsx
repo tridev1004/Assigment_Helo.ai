@@ -17,10 +17,20 @@ type DateTimeRange = {
   timeRangeEnabled: boolean
 }
 
+/**
+ * UPDATED NOTES:
+ * - Calendar now allows typing: readOnlyInput={false}
+ * - Time fields: editable text + explicit AM/PM select to avoid ambiguous input
+ * - InputSwitch onChange simplified (e.value)
+ * - parse/normalize time accepts "HH:MM" and "HH:MM AM/PM"
+ * - preserveTime handles null source dates more defensively
+ */
+
 export default function PrimeRangeCalendar() {
   const [startDate, setStartDate] = useState<Date | null>(new Date(2025, 11, 15, 12, 0))
   const [endDate, setEndDate] = useState<Date | null>(new Date(2025, 11, 24, 23, 59))
 
+  // Keep times as a single string but provide an explicit AM/PM selector
   const [startTime, setStartTime] = useState(formatTimeForInputs(new Date(2025, 11, 15, 12, 0)))
   const [startIsPM, setStartIsPM] = useState<boolean>(true)
   const [endTime, setEndTime] = useState(formatTimeForInputs(new Date(2025, 11, 24, 23, 59)))
@@ -32,6 +42,7 @@ export default function PrimeRangeCalendar() {
   const [dragStart, setDragStart] = useState<Date | null>(null)
   const calendarRef = useRef<HTMLDivElement | null>(null)
 
+  // duration text
   const durationText = useMemo(() => {
     if (!startDate || !endDate) return ""
     const diffMs = endDate.getTime() - startDate.getTime()
@@ -43,6 +54,7 @@ export default function PrimeRangeCalendar() {
     return `${days} days, ${hours} hours, ${mins} minutes selected`
   }, [startDate, endDate])
 
+  // helpers for month grid
   const getDaysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
   const getFirstDayOfMonth = (date: Date) => (new Date(date.getFullYear(), date.getMonth(), 1).getDay() + 6) % 7
 
@@ -58,18 +70,23 @@ export default function PrimeRangeCalendar() {
     const rangeEnd = stripTime(endDate)!
     const from = rangeStart < rangeEnd ? rangeStart : rangeEnd
     const to = rangeStart < rangeEnd ? rangeEnd : rangeStart
+    // exclude endpoints so they render as rounded pills
     return date > from && date < to
   }
+
+  // Drag handlers (single-month grid support)
   const handleMouseDown = (day: number) => {
     const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day)
     setIsDragging(true)
     setDragStart(date)
 
+    // set both ends to the clicked day initially
     const s = timeRangeEnabled ? preserveTime(date, startDate) : setTimeOnDate(date, 0, 0, false)
     const e = timeRangeEnabled ? preserveTime(date, endDate) : setTimeOnDate(date, 23, 59, true)
     setStartDate(s)
     setEndDate(e)
 
+    // If times are present, keep them; otherwise format newly created dates
     setStartTime(formatTimeForInputs(s))
     setStartIsPM(s ? s.getHours() >= 12 : false)
     setEndTime(formatTimeForInputs(e))
@@ -113,6 +130,7 @@ export default function PrimeRangeCalendar() {
     setCurrentMonth(new Date(dt.getFullYear(), dt.getMonth()))
   }
 
+  // Keep date objects in sync when times change. We normalize parse results.
   useEffect(() => {
     if (!startDate) return
     const parsed = parseTimeInputFlexible(startTime, startIsPM)
@@ -122,6 +140,7 @@ export default function PrimeRangeCalendar() {
       setStartTime(formatTimeForInputs(newStart))
       setStartIsPM(parsed.isPM)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startTime, startIsPM])
 
   useEffect(() => {
@@ -133,6 +152,7 @@ export default function PrimeRangeCalendar() {
       setEndTime(formatTimeForInputs(newEnd))
       setEndIsPM(parsed.isPM)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [endTime, endIsPM])
 
   const handleReset = () => {
@@ -174,9 +194,11 @@ export default function PrimeRangeCalendar() {
       <div className=" bg-white rounded-2xl shadow-lg p-6 w-full max-w-xs">
         <h2 className="text-lg font-semibold text-gray-900 mb-4 text-center">Select Date & Time Range</h2>
 
+        {/* Top inputs use PrimeReact components for the UI look */}
         <div className="grid grid-cols-2 gap-4 mb-5">
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Start Date</label>
+            {/* Allow typing by setting readOnlyInput={false} */}
             <Calendar
               value={startDate}
               onChange={onStartPickerChange}
@@ -244,6 +266,7 @@ export default function PrimeRangeCalendar() {
           </div>
         </div>
 
+        {/* Toggle */}
         <div className="flex items-center gap-2 mb-4 p-3 bg-blue-50 rounded">
           <InputSwitch
             checked={timeRangeEnabled}
@@ -253,6 +276,7 @@ export default function PrimeRangeCalendar() {
           <label className="text-xs font-medium text-gray-700 cursor-pointer">Time Range</label>
         </div>
 
+        {/* Custom grid calendar */}
         <div ref={calendarRef} className="border border-gray-300 rounded-lg p-4 mb-4 select-none">
           <div className="flex items-center justify-between mb-4">
             <button onClick={handlePreviousMonth} className="p-1 hover:bg-gray-100 rounded transition-colors">◀</button>
@@ -322,6 +346,7 @@ export default function PrimeRangeCalendar() {
   )
 }
 
+/* ---------- helpers ---------- */
 
 function stripTime(d: Date | null) {
   if (!d) return null
@@ -329,6 +354,7 @@ function stripTime(d: Date | null) {
 }
 
 function preserveTime(datePart: Date, sourceFull: Date | null) {
+  // If sourceFull missing, preserve reasonable default (midday)
   if (!sourceFull) return new Date(datePart.getFullYear(), datePart.getMonth(), datePart.getDate(), 12, 0)
   return new Date(
     datePart.getFullYear(),
@@ -345,7 +371,11 @@ function setTimeOnDate(date: Date, hours12: number, minutes: number, isPM: boole
   return new Date(date.getFullYear(), date.getMonth(), date.getDate(), h, minutes)
 }
 
-
+/**
+ * Accepts flexible formats:
+ * - "hh:mm AM/PM"
+ * - "hh:mm" (will use provided isPM fallback)
+ */
 function parseTimeInputFlexible(s: string, fallbackIsPM: boolean) {
   if (!s) return null
   const m = s.match(/^(\d{1,2}):(\d{2})(?:\s*([AaPp][Mm]))?$/)

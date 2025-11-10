@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react"
 import { Calendar } from "primereact/calendar"
 import { InputText } from "primereact/inputtext"
 import { Button } from "primereact/button"
-import { InputSwitch } from "primereact/inputswitch"
+import { InputSwitch } from "primereact/inputswitch" 
 import "primereact/resources/themes/saga-blue/theme.css"
 import "primereact/resources/primereact.min.css"
 import "primeicons/primeicons.css"
@@ -20,14 +20,12 @@ type DateTimeRange = {
 export default function PrimeRangeCalendar() {
   const [startDate, setStartDate] = useState<Date | null>(new Date(2025, 11, 15, 12, 0))
   const [endDate, setEndDate] = useState<Date | null>(new Date(2025, 11, 24, 23, 59))
-
   const [startTime, setStartTime] = useState(formatTimeForInputs(new Date(2025, 11, 15, 12, 0)))
-  const [startIsPM, setStartIsPM] = useState<boolean>(true)
   const [endTime, setEndTime] = useState(formatTimeForInputs(new Date(2025, 11, 24, 23, 59)))
-  const [endIsPM, setEndIsPM] = useState<boolean>(true)
-
   const [timeRangeEnabled, setTimeRangeEnabled] = useState(true)
+
   const [currentMonth, setCurrentMonth] = useState(new Date(2025, 11))
+
   const [isDragging, setIsDragging] = useState(false)
   const [dragStart, setDragStart] = useState<Date | null>(null)
   const calendarRef = useRef<HTMLDivElement | null>(null)
@@ -53,27 +51,24 @@ export default function PrimeRangeCalendar() {
 
   const isDateInRange = (day: number) => {
     if (!startDate || !endDate) return false
-    const date = stripTime(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day))!
-    const rangeStart = stripTime(startDate)!
-    const rangeEnd = stripTime(endDate)!
-    const from = rangeStart < rangeEnd ? rangeStart : rangeEnd
-    const to = rangeStart < rangeEnd ? rangeEnd : rangeStart
-    return date > from && date < to
+    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day)
+    const rangeStart = startDate < endDate ? startDate : endDate
+    const rangeEnd = startDate < endDate ? endDate : startDate
+    const startNoTime = stripTime(rangeStart)!
+    const endNoTime = stripTime(rangeEnd)!
+    return date >= startNoTime && date <= endNoTime && !isDateSelected(day)
   }
+
   const handleMouseDown = (day: number) => {
     const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day)
     setIsDragging(true)
     setDragStart(date)
-
     const s = timeRangeEnabled ? preserveTime(date, startDate) : setTimeOnDate(date, 0, 0, false)
-    const e = timeRangeEnabled ? preserveTime(date, endDate) : setTimeOnDate(date, 23, 59, true)
+    const e = timeRangeEnabled ? preserveTime(date, endDate) : setTimeOnDate(date, 23, 59, false)
     setStartDate(s)
     setEndDate(e)
-
     setStartTime(formatTimeForInputs(s))
-    setStartIsPM(s ? s.getHours() >= 12 : false)
     setEndTime(formatTimeForInputs(e))
-    setEndIsPM(e ? e.getHours() >= 12 : true)
   }
 
   const handleMouseOver = (day: number) => {
@@ -99,41 +94,35 @@ export default function PrimeRangeCalendar() {
     const dt = timeRangeEnabled ? preserveTime(date, startDate) : setTimeOnDate(date, 0, 0, false)
     setStartDate(dt)
     setStartTime(formatTimeForInputs(dt))
-    setStartIsPM(dt.getHours() >= 12)
     setCurrentMonth(new Date(dt.getFullYear(), dt.getMonth()))
   }
 
   function onEndPickerChange(e: any) {
     const date: Date | null = e.value
     if (!date) return
-    const dt = timeRangeEnabled ? preserveTime(date, endDate) : setTimeOnDate(date, 23, 59, true)
+    const dt = timeRangeEnabled ? preserveTime(date, endDate) : setTimeOnDate(date, 23, 59, false)
     setEndDate(dt)
     setEndTime(formatTimeForInputs(dt))
-    setEndIsPM(dt.getHours() >= 12)
     setCurrentMonth(new Date(dt.getFullYear(), dt.getMonth()))
   }
 
   useEffect(() => {
     if (!startDate) return
-    const parsed = parseTimeInputFlexible(startTime, startIsPM)
+    const parsed = parseTimeInput(startTime)
     if (parsed) {
       const newStart = setTimeOnDate(startDate, parsed.hours, parsed.minutes, parsed.isPM)
       setStartDate(newStart)
-      setStartTime(formatTimeForInputs(newStart))
-      setStartIsPM(parsed.isPM)
     }
-  }, [startTime, startIsPM])
+  }, [startTime])
 
   useEffect(() => {
     if (!endDate) return
-    const parsed = parseTimeInputFlexible(endTime, endIsPM)
+    const parsed = parseTimeInput(endTime)
     if (parsed) {
       const newEnd = setTimeOnDate(endDate, parsed.hours, parsed.minutes, parsed.isPM)
       setEndDate(newEnd)
-      setEndTime(formatTimeForInputs(newEnd))
-      setEndIsPM(parsed.isPM)
     }
-  }, [endTime, endIsPM])
+  }, [endTime])
 
   const handleReset = () => {
     const newStart = new Date(2025, 11, 15, 12, 0)
@@ -142,20 +131,11 @@ export default function PrimeRangeCalendar() {
     setEndDate(newEnd)
     setStartTime(formatTimeForInputs(newStart))
     setEndTime(formatTimeForInputs(newEnd))
-    setStartIsPM(newStart.getHours() >= 12)
-    setEndIsPM(newEnd.getHours() >= 12)
     setCurrentMonth(new Date(newStart.getFullYear(), newStart.getMonth()))
-    setTimeRangeEnabled(true)
   }
 
   const handleSave = () => {
-    const data: DateTimeRange = {
-      startDate,
-      endDate,
-      startTime: `${startTime}`,
-      endTime: `${endTime}`,
-      timeRangeEnabled,
-    }
+    const data: DateTimeRange = { startDate, endDate, startTime, endTime, timeRangeEnabled }
     console.log("Saved:", data)
     alert(`Saved!\nStart: ${startDate?.toLocaleString()}\nEnd: ${endDate?.toLocaleString()}`)
   }
@@ -171,88 +151,49 @@ export default function PrimeRangeCalendar() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4" onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
-      <div className=" bg-white rounded-2xl shadow-lg p-6 w-full max-w-xs">
+      <div className=" bg-white rounded-2xl shadow-lg p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4 text-center">Select Date & Time Range</h2>
 
+        {/* Top inputs use PrimeReact components for the UI look */}
         <div className="grid grid-cols-2 gap-4 mb-5">
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Start Date</label>
-            <Calendar
-              value={startDate}
-              onChange={onStartPickerChange}
-              showIcon
-              dateFormat="dd/mm/yy"
-              className="w-full"
-              readOnlyInput={false}
-              inputClassName="px-2 py-1.5 text-xs"
-            />
+            <Calendar value={startDate} onChange={onStartPickerChange} showIcon dateFormat="dd/mm/yy" className="w-full" />
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Start Time</label>
             <div className="flex gap-1.5">
-              <InputText
-                value={startTime}
-                onChange={(e: any) => setStartTime(e.target.value)}
-                className="flex-1 px-2 py-1.5 text-xs"
-                placeholder="hh:mm"
-              />
-              <select
-                aria-label="Start AM/PM"
-                value={startIsPM ? "PM" : "AM"}
-                onChange={(e) => setStartIsPM(e.target.value === "PM")}
-                className="text-xs px-2 py-1.5 rounded border"
-              >
-                <option>AM</option>
-                <option>PM</option>
-              </select>
+              <InputText value={startTime} onChange={(e) => setStartTime(e.target.value)} className="flex-1 px-2 py-1.5 text-xs" />
+              <span className="flex items-center text-xs text-gray-600 font-medium w-8">{startTime.includes("PM") ? "PM" : "AM"}</span>
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">End Date</label>
-            <Calendar
-              value={endDate}
-              onChange={onEndPickerChange}
-              showIcon
-              dateFormat="dd/mm/yy"
-              className="w-full"
-              readOnlyInput={false}
-              inputClassName="px-2 py-1.5 text-xs"
-            />
+            <Calendar value={endDate} onChange={onEndPickerChange} showIcon dateFormat="dd/mm/yy" className="w-full" />
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">End Time</label>
             <div className="flex gap-1.5">
-              <InputText
-                value={endTime}
-                onChange={(e: any) => setEndTime(e.target.value)}
-                className="flex-1 px-2 py-1.5 text-xs"
-                placeholder="hh:mm"
-              />
-              <select
-                aria-label="End AM/PM"
-                value={endIsPM ? "PM" : "AM"}
-                onChange={(e) => setEndIsPM(e.target.value === "PM")}
-                className="text-xs px-2 py-1.5 rounded border"
-              >
-                <option>AM</option>
-                <option>PM</option>
-              </select>
+              <InputText value={endTime} onChange={(e) => setEndTime(e.target.value)} className="flex-1 px-2 py-1.5 text-xs" />
+              <span className="flex items-center text-xs text-gray-600 font-medium w-8">{endTime.includes("PM") ? "PM" : "AM"}</span>
             </div>
           </div>
         </div>
 
+        {/* Replaced Checkbox with an on/off InputSwitch */}
         <div className="flex items-center gap-2 mb-4 p-3 bg-blue-50 rounded">
           <InputSwitch
             checked={timeRangeEnabled}
-            onChange={(e: any) => setTimeRangeEnabled(e.value)}
+            onChange={(e: any) => setTimeRangeEnabled(e?.value ?? e?.checked ?? false)}
             aria-label="Toggle time range"
           />
           <label className="text-xs font-medium text-gray-700 cursor-pointer">Time Range</label>
         </div>
 
+        {/* Custom grid calendar (functionality from first example) */}
         <div ref={calendarRef} className="border border-gray-300 rounded-lg p-4 mb-4 select-none">
           <div className="flex items-center justify-between mb-4">
             <button onClick={handlePreviousMonth} className="p-1 hover:bg-gray-100 rounded transition-colors">◀</button>
@@ -287,7 +228,6 @@ export default function PrimeRangeCalendar() {
                         borderBottomLeftRadius: start ? 9999 : 0,
                         borderTopRightRadius: end ? 9999 : 0,
                         borderBottomRightRadius: end ? 9999 : 0,
-                        opacity: start || end ? 1 : 1,
                       }}
                     />
                   )}
@@ -322,14 +262,13 @@ export default function PrimeRangeCalendar() {
   )
 }
 
-
 function stripTime(d: Date | null) {
   if (!d) return null
   return new Date(d.getFullYear(), d.getMonth(), d.getDate())
 }
 
 function preserveTime(datePart: Date, sourceFull: Date | null) {
-  if (!sourceFull) return new Date(datePart.getFullYear(), datePart.getMonth(), datePart.getDate(), 12, 0)
+  if (!sourceFull) return datePart
   return new Date(
     datePart.getFullYear(),
     datePart.getMonth(),
@@ -345,16 +284,13 @@ function setTimeOnDate(date: Date, hours12: number, minutes: number, isPM: boole
   return new Date(date.getFullYear(), date.getMonth(), date.getDate(), h, minutes)
 }
 
-
-function parseTimeInputFlexible(s: string, fallbackIsPM: boolean) {
+function parseTimeInput(s: string) {
   if (!s) return null
-  const m = s.match(/^(\d{1,2}):(\d{2})(?:\s*([AaPp][Mm]))?$/)
+  const m = s.match(/^(\d{1,2}):(\d{2})\s*([AaPp][Mm])$/)
   if (!m) return null
-  let hh = Number.parseInt(m[1], 10)
+  const hh = Number.parseInt(m[1], 10)
   const mm = Number.parseInt(m[2], 10)
-  const isPM = m[3] ? /^p/i.test(m[3]) : fallbackIsPM
-  if (hh < 1) hh = 1
-  if (hh > 12) hh = ((hh - 1) % 12) + 1
+  const isPM = /^p/i.test(m[3])
   return { hours: hh, minutes: mm, isPM }
 }
 

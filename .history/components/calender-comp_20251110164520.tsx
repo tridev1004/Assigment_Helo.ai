@@ -17,6 +17,7 @@ type DateTimeRange = {
   timeRangeEnabled: boolean
 }
 
+
 export default function PrimeRangeCalendar() {
   const [startDate, setStartDate] = useState<Date | null>(new Date(2025, 11, 15, 12, 0))
   const [endDate, setEndDate] = useState<Date | null>(new Date(2025, 11, 24, 23, 59))
